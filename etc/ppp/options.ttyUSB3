@@ -1,0 +1,8 @@
+local
+lock
+nocrtscts
+192.168.32.13:192.168.32.14
+netmask 255.255.255.252
+noauth
+proxyarp
+lcp-echo-failure 60
