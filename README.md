@@ -203,3 +203,30 @@ To enable the changes made in `sysctl.conf`, run `sysctl -p /etc/sysctl.conf`
  * On Linux distributions with iptables (legacy), you need to add a line to /etc/rc.local to enable masquerading. If your Ethernet interface is named eth0, you would add this line:
    `iptables -t nat -A POSTROUTING -s 192.168.32.0/24 -o eth0 -j MASQUERADE`
  * On modern Ubuntu installs, `ufw` is used as a front-end to `iptables`, so the procedure is a bit different. Follow this guide, but you can omit `-o eth0` and use `-s 192.168.32.0/24`.
+
+## WebOne Proxy
+
+We are running a [WebOne Proxy](https://github.com/atauenis/webone) at `192.168.31.31:8080`. If it is added to the system/browser as an HTTP proxy, it will tunnel HTTPS sites over HTTP. For example, visiting `http://google.com` will transparently access `https://google.com`.
+
+Installation can be performed as follows. This assumes an ARM-based system, but you can find the latest binary for your architecture here, https://github.com/atauenis/webone/releases.
+
+```
+$ wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+$ sudo dpkg -i packages-microsoft-prod.deb
+$ sudo apt update
+$ wget http://ftp.us.debian.org/debian/pool/main/i/icu/libicu63_63.1-6+deb10u3_arm64.deb
+$ dpkg -i libicu63_63.1-6+deb10u3_arm64.deb
+$ wget https://github.com/atauenis/webone/releases/download/v0.15.3/webone.0.15.3.linux-arm64.deb
+$ sudo apt install ./webone.0.15.3.linux-arm64.deb
+$ sudo systemctl start webone
+$ sudo systemctl enable webone
+$ sudo echo "net.ipv4.conf.all.route_localnet=1" >> /etc/sysctl.conf
+$ sudo sysctl -p /etc/sysctl.conf
+```
+
+Now we need new firewall rules. The first rule is for our clients while the second is for the local system.
+
+```
+iptables -t nat -I PREROUTING --src 0/0 --dst 192.168.31.31 -p tcp --dport 8080 -j REDIRECT --to-ports 8080
+iptables -t nat -I OUTPUT --src 0/0 --dst 192.168.31.31 -p tcp --dport 8080 -j REDIRECT --to-ports 8080
+```
